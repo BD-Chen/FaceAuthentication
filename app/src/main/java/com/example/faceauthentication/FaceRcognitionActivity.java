@@ -1,7 +1,6 @@
 package com.example.faceauthentication;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.BitmapFactory;
@@ -49,9 +48,6 @@ public class FaceRcognitionActivity extends AppCompatActivity {
     private PreviewView previewView;
     private Interpreter tflite;
     private float[] registeredFaceEmbedding;
-    private static final String PREFERENCES_NAME = "FaceAuthenticationPrefs";
-    private static final String EMBEDDING_KEY = "registered_embedding";
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +56,7 @@ public class FaceRcognitionActivity extends AppCompatActivity {
 
         Button btnRegisterFace = findViewById(R.id.btnRegisterFace);
         Button btnAuthenticateFace = findViewById(R.id.btnAuthenticateFace);
+        Button btnBack = findViewById(R.id.backbtn);
         previewView = findViewById(R.id.previewView);
 
         cameraExecutor = Executors.newSingleThreadExecutor();
@@ -73,7 +70,7 @@ public class FaceRcognitionActivity extends AppCompatActivity {
         try {
             tflite = new Interpreter(loadModelFile());
         } catch (IOException e) {
-            Log.e("FaceRecognition", "加载模型失败", e);
+            Log.e("FaceRecognition", "Load model failure", e);
         }
 
         btnRegisterFace.setOnClickListener(new View.OnClickListener() {
@@ -87,6 +84,14 @@ public class FaceRcognitionActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 captureAndAuthenticateFace();
+            }
+        });
+
+        btnBack.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(FaceRcognitionActivity.this, MainActivity.class);
+                startActivity(intent);
             }
         });
 
@@ -122,14 +127,12 @@ public class FaceRcognitionActivity extends AppCompatActivity {
                 if (faceEmbedding != null && registeredFaceEmbedding != null) {
                     float similarity = calculateSimilarity(faceEmbedding, registeredFaceEmbedding);
                     runOnUiThread(() -> {
-                        if (similarity > 0.9) {
+                        if (similarity > 0.8) {
                             Toast.makeText(FaceRcognitionActivity.this, "Login Successful", Toast.LENGTH_SHORT).show();
                             Intent intent = new Intent(FaceRcognitionActivity.this, SuccessActivity.class);
                             startActivity(intent);
                         } else {
                             Toast.makeText(FaceRcognitionActivity.this, "Login Failure", Toast.LENGTH_SHORT).show();
-                            Intent intent = new Intent(FaceRcognitionActivity.this, MainActivity.class);
-                            startActivity(intent);
                         }
                     });
                 } else {
@@ -158,7 +161,7 @@ public class FaceRcognitionActivity extends AppCompatActivity {
 
     private ByteBuffer bitmapToByteBuffer(Bitmap bitmap) {
         int inputSize = 160; // Assuming the model input is an image of size 160x160
-        ByteBuffer byteBuffer = ByteBuffer.allocateDirect(4 * inputSize * inputSize * 3); // RGB 通道
+        ByteBuffer byteBuffer = ByteBuffer.allocateDirect(4 * inputSize * inputSize * 3);
         byteBuffer.order(ByteOrder.nativeOrder());
 
         // Resize the bitmap to the size required by the model
